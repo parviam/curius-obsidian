@@ -5,12 +5,12 @@ Automatically sync your [Curius](https://curius.app) bookmarks to your Obsidian 
 I spent about an hour total on this project, and ~95% of the code was written by Claude. Do not use in super sensitive settings, your mileage may vary, this is not medical advice, etc. etc. Please feel free to reach out if anything is wrong.
 
 ## Meta note
-Probably, the easiest way to set this up is just asking Claude to read this. 
+Probably, the easiest way to set this up is just asking Claude to read this.
 
 ## Features
 
 - Fetches all saved links from your Curius account
-- Generates concise summaries using Groq's LLaMA 3.3 70B model
+- Generates concise summaries using your choice of LLM provider (OpenRouter or Groq)
 - Preserves highlights and comments from Curius
 - Creates well-formatted Markdown files with YAML frontmatter
 - Tracks processed links to avoid duplicates
@@ -20,7 +20,9 @@ Probably, the easiest way to set this up is just asking Claude to read this.
 
 - **Python 3.13+**
 - **[uv](https://docs.astral.sh/uv/)** - Fast Python package manager
-- **Groq API key** - Free at [console.groq.com](https://console.groq.com/keys)
+- **LLM API key** - Choose one:
+  - [OpenRouter](https://openrouter.ai/keys) - Access to many models (Claude, GPT-4, etc.)
+  - [Groq](https://console.groq.com/keys) - Free, fast (LLaMA 3.3 70B)
 - **Curius account** - Your saved links at [curius.app](https://curius.app)
 - **Obsidian vault** - Where your notes will be saved
 
@@ -54,7 +56,15 @@ cp .env.example .env
 Edit `.env` with your values:
 
 ```env
-GROQ_API_KEY=your_groq_api_key_here
+# Choose ONE LLM provider:
+# Option 1: OpenRouter (if both are set, OpenRouter is preferred)
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+# OPENROUTER_MODEL=google/gemini-flash-1.5  # optional, this is the default (free)
+
+# Option 2: Groq (free)
+# GROQ_API_KEY=your_groq_api_key_here
+
+# Required settings
 CURIUS_USER_ID=12345
 
 # Windows:
@@ -62,6 +72,24 @@ VAULT_PATH=C:\Users\YourName\Documents\Obsidian\curius
 # Mac/Linux:
 VAULT_PATH=/Users/yourname/Documents/Obsidian/curius
 ```
+
+## LLM Provider Options
+
+The script auto-detects which provider to use based on which API key is set.
+
+### OpenRouter
+- **Pros**: Access to many models (Claude, GPT-4, Gemini, etc.), includes free models
+- **Setup**: Get an API key at [openrouter.ai/keys](https://openrouter.ai/keys)
+- **Default model**: `google/gemini-flash-1.5` (fast and free)
+- **Custom model**: Set `OPENROUTER_MODEL` in your `.env` file
+- **Browse models**: [openrouter.ai/models](https://openrouter.ai/models) (filter by "free" for free options)
+
+### Groq
+- **Pros**: Free tier, very fast inference
+- **Setup**: Get an API key at [console.groq.com/keys](https://console.groq.com/keys)
+- **Model**: LLaMA 3.3 70B Versatile
+
+If both API keys are set, OpenRouter is used.
 
 ### Finding Your Curius User ID
 
@@ -210,10 +238,16 @@ AI-generated summary of the article content...
 
 ## Troubleshooting
 
+### "No LLM API key found" Error
+
+Set at least one of the following in your `.env` file:
+- `OPENROUTER_API_KEY` - Get one at [openrouter.ai/keys](https://openrouter.ai/keys)
+- `GROQ_API_KEY` - Get one at [console.groq.com/keys](https://console.groq.com/keys)
+
 ### "Missing required environment variable" Error
 
 Ensure your `.env` file exists and contains all required variables:
-- `GROQ_API_KEY`
+- `OPENROUTER_API_KEY` or `GROQ_API_KEY` (at least one)
 - `CURIUS_USER_ID`
 - `VAULT_PATH`
 
@@ -241,7 +275,7 @@ The script will create the vault folder automatically if it doesn't exist. Make 
 The script includes retry logic with exponential backoff. If you have many links, the initial sync may take a while. Subsequent runs only process new links.
 
 ## Contact
-Say hi to me at [parvmahajan.com](https://www.parvmahajan.com) ! If this brought you sufficient joy, consider donating $5 (or more!) to the [Malaria Consortium](https://www.givewell.org/charities/malaria-consortium) through GiveWell!
+Say hi to me at [parvmahajan.com](https://www.parvmahajan.com)! If this brought you sufficient joy, consider donating $5 (or more!) to the [Malaria Consortium](https://www.givewell.org/charities/malaria-consortium) through GiveWell!
 
 ## License
 Check out [LICENSE](/LICENSE)

@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 
 from groq import Groq
+from openai import OpenAI
 import httpx
 from dotenv import load_dotenv
 
@@ -29,6 +30,17 @@ CURIUS_USER_ID = get_required_env("CURIUS_USER_ID")
 CURIUS_API_URL = f"https://curius.app/api/users/{CURIUS_USER_ID}/links"
 VAULT_PATH = Path(get_required_env("VAULT_PATH"))
 STATE_FILE = Path(__file__).parent / "processed_links.json"
+
+
+def get_llm_provider() -> str:
+    """Detect which LLM provider to use based on available API keys."""
+    if os.getenv("OPENROUTER_API_KEY"):
+        return "openrouter"
+    elif os.getenv("GROQ_API_KEY"):
+        return "groq"
+    else:
+        logger.error("No LLM API key found. Set OPENROUTER_API_KEY or GROQ_API_KEY in your .env file")
+        raise SystemExit(1)
 
 
 def fetch_curius_links() -> list[dict]:
@@ -63,20 +75,9 @@ def filter_new_links(links: list[dict], processed_ids: set[int]) -> list[dict]:
     return new_links
 
 
-def summarize_with_llm(text: str, title: str) -> str:
-    """Summarize text using Groq API with Gemma 3 27B."""
-    api_key = os.getenv("GROQ_API_KEY")
-    if not api_key:
-        raise ValueError("GROQ_API_KEY not set in environment")
-
-    client = Groq(api_key=api_key)
-
-    prompt = f"""Summarize the following article in 2-3 concise paragraphs. Focus on the key insights and main points.
-
-Title: {title}
-
-Content:
-{text[:15000]}"""  # Truncate to avoid token limits
+def summarize_with_groq(text: str, title: str, prompt: str) -> str:
+    """Summarize text using Groq API."""
+    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
     max_retries = 3
     for attempt in range(max_retries):
@@ -94,6 +95,49 @@ Content:
             else:
                 logger.error(f"Failed to summarize after {max_retries} attempts: {e}")
                 return "[Summary unavailable]"
+
+
+def summarize_with_openrouter(text: str, title: str, prompt: str) -> str:
+    """Summarize text using OpenRouter API."""
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=os.getenv("OPENROUTER_API_KEY"),
+    )
+    model = os.getenv("OPENROUTER_MODEL", "google/gemini-flash-1.5")
+
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            if attempt < max_retries - 1:
+                wait_time = 2 ** (attempt + 1)
+                logger.warning(f"OpenRouter API error: {e}. Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+            else:
+                logger.error(f"Failed to summarize after {max_retries} attempts: {e}")
+                return "[Summary unavailable]"
+
+
+def summarize_with_llm(text: str, title: str) -> str:
+    """Summarize text using the configured LLM provider."""
+    provider = get_llm_provider()
+
+    prompt = f"""Summarize the following article in 2-3 concise paragraphs. Focus on the key insights and main points.
+
+Title: {title}
+
+Content:
+{text[:15000]}"""  # Truncate to avoid token limits
+
+    if provider == "openrouter":
+        return summarize_with_openrouter(text, title, prompt)
+    else:
+        return summarize_with_groq(text, title, prompt)
 
 
 def sanitize_filename(title: str) -> str:
@@ -176,6 +220,8 @@ def save_to_vault(title: str, content: str, curius_id: int) -> Path:
 
 def main():
     logger.info("Starting Curius to Obsidian sync...")
+    provider = get_llm_provider()
+    logger.info(f"Using LLM provider: {provider}")
 
     # Fetch links
     links = fetch_curius_links()
