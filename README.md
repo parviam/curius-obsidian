@@ -99,7 +99,7 @@ The Curius API requires your numeric user ID (not your username). To find it:
 2. Open browser DevTools (`F12` or right-click > Inspect)
 3. Go to the **Network** tab
 4. Refresh the page
-5. Look for API requests to `/api/users/{number}/links`
+5. Look for API requests to `/api/users/{number}/links` (you can search for 'links' in the search bar, may be links?page=0)
 6. The number in the URL is your user ID
 
 ## Usage
@@ -275,7 +275,7 @@ The script will create the vault folder automatically if it doesn't exist. Make 
 The script includes retry logic with exponential backoff. If you have many links, the initial sync may take a while. Subsequent runs only process new links.
 
 ## Contact
-Say hi to me at [parvmahajan.com](https://www.parvmahajan.com)! If this brought you sufficient joy, consider donating $5 (or more!) to the [Malaria Consortium](https://www.givewell.org/charities/malaria-consortium) through GiveWell!
+Say hi to me at [parvmahajan.com](https://www.parvmahajan.com)! If this brought you sufficient joy, consider donating a coffee to the [Malaria Consortium](https://www.givewell.org/charities/malaria-consortium) through GiveWell!
 
 ## License
 Check out [LICENSE](/LICENSE)
